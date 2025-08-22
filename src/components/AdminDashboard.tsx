@@ -42,22 +42,24 @@ const AdminDashboard: React.FC = () => {
     description: '',
     image: ''
   });
+  const [lastOrderCount, setLastOrderCount] = useState(0);
 
   useEffect(() => {
     setOrders(getOrders());
     setMenu(getMenu());
     setCarouselImages(getCarouselImages());
+    setLastOrderCount(getOrders().length);
   }, []);
 
   useEffect(() => {
-    // Check for new orders periodically and show toast
+    // Check for new orders periodically and show toast - Fixed loop issue
     const interval = setInterval(() => {
       const currentOrders = getOrders();
       
-      // Find new orders that haven't been processed yet
-      const newOrders = currentOrders.filter(order => !processedOrderIds.has(order.id));
+      // Only check if order count increased to prevent loops
+      if (currentOrders.length > lastOrderCount) {
+        const newOrders = currentOrders.slice(lastOrderCount);
       
-      if (newOrders.length > 0) {
         newOrders.forEach(newOrder => {
           toast.success(
             <div 
@@ -79,15 +81,13 @@ const AdminDashboard: React.FC = () => {
           );
         });
         
-        // Update processed order IDs
-        const newProcessedIds = new Set([...processedOrderIds, ...newOrders.map(o => o.id)]);
-        setProcessedOrderIds(newProcessedIds);
+        setLastOrderCount(currentOrders.length);
         setOrders(currentOrders);
       }
     }, 2000);
     
     return () => clearInterval(interval);
-  }, [processedOrderIds]);
+  }, [lastOrderCount]);
 
   const handleStatusUpdate = (orderId: string, status: Order['status']) => {
     updateOrderStatus(orderId, status);
@@ -142,8 +142,8 @@ const AdminDashboard: React.FC = () => {
     if (!isOrderModalOpen || !selectedOrder) return null;
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-        <div className="bg-gray-900 rounded-xl w-full max-w-2xl border border-yellow-500/30 shadow-2xl">
+      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+        <div className="bg-gray-900 rounded-xl w-full max-w-2xl border border-yellow-500/30 shadow-2xl my-8 max-h-screen overflow-y-auto">
           <div className="p-6 border-b border-yellow-500/30">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold text-yellow-400">Order Details</h2>
@@ -158,7 +158,7 @@ const AdminDashboard: React.FC = () => {
 
           <div className="p-6 space-y-6">
             {/* Order Info */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <p className="text-gray-400">Order ID</p>
                 <p className="text-yellow-400 font-semibold">#{selectedOrder.id}</p>
@@ -190,10 +190,10 @@ const AdminDashboard: React.FC = () => {
             {/* Order Items */}
             <div className="bg-gray-800 rounded-lg p-4">
               <h3 className="text-yellow-400 font-semibold mb-3">Order Items</h3>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {selectedOrder.items.map(item => (
-                  <div key={item.id} className="flex justify-between items-center">
-                    <div className="flex items-center space-x-3">
+                  <div key={item.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-2 sm:space-y-0">
+                    <div className="flex items-center space-x-3 flex-1">
                       {item.image && (
                         <img src={item.image} alt={item.name} className="w-12 h-12 object-cover rounded" />
                       )}
@@ -202,7 +202,7 @@ const AdminDashboard: React.FC = () => {
                         <p className="text-gray-400 text-sm">₹{item.price} each</p>
                       </div>
                     </div>
-                    <div className="text-right">
+                    <div className="text-left sm:text-right">
                       <p className="text-white">Qty: {item.quantity}</p>
                       <p className="text-yellow-400 font-semibold">₹{item.price * item.quantity}</p>
                     </div>
@@ -215,30 +215,40 @@ const AdminDashboard: React.FC = () => {
             {selectedOrder.paymentScreenshot && (
               <div className="bg-gray-800 rounded-lg p-4">
                 <h3 className="text-yellow-400 font-semibold mb-3">Payment Screenshot</h3>
-                <img 
-                  src={selectedOrder.paymentScreenshot} 
-                  alt="Payment screenshot" 
-                  className="w-full max-w-md mx-auto rounded-lg"
-                />
+                <div className="flex justify-center">
+                  <img 
+                    src={selectedOrder.paymentScreenshot} 
+                    alt="Payment screenshot" 
+                    className="max-w-full max-h-64 object-contain rounded-lg"
+                  />
+                </div>
               </div>
             )}
 
             {/* Status Update */}
             <div className="bg-gray-800 rounded-lg p-4">
               <h3 className="text-yellow-400 font-semibold mb-3">Update Status</h3>
-              <select
-                value={selectedOrder.status}
-                onChange={(e) => {
-                  handleStatusUpdate(selectedOrder.id, e.target.value as Order['status']);
-                  setSelectedOrder({...selectedOrder, status: e.target.value as Order['status']});
-                }}
-                className="bg-gray-700 text-white border border-yellow-500/30 rounded px-3 py-2 focus:border-yellow-400 focus:outline-none"
-              >
-                <option value="received">Order Received</option>
-                <option value="cooking">Cooking</option>
-                <option value="preparing">Preparing</option>
-                <option value="delivered">Delivered</option>
-              </select>
+              <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+                <select
+                  value={selectedOrder.status}
+                  onChange={(e) => {
+                    handleStatusUpdate(selectedOrder.id, e.target.value as Order['status']);
+                    setSelectedOrder({...selectedOrder, status: e.target.value as Order['status']});
+                  }}
+                  className="bg-gray-700 text-white border border-yellow-500/30 rounded px-3 py-2 focus:border-yellow-400 focus:outline-none w-full sm:w-auto"
+                >
+                  <option value="received">Order Received</option>
+                  <option value="cooking">Cooking</option>
+                  <option value="preparing">Preparing</option>
+                  <option value="delivered">Delivered</option>
+                </select>
+                <button
+                  onClick={() => setIsOrderModalOpen(false)}
+                  className="bg-yellow-500 hover:bg-yellow-600 text-black px-4 py-2 rounded transition-colors font-semibold"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -259,7 +269,7 @@ const AdminDashboard: React.FC = () => {
         toastOptions={{
           duration: 8000,
           style: {
-            background: '#1f2937',
+            background: '#000000',
             color: '#f1f5f9',
             border: '1px solid #eab308',
           },
@@ -271,14 +281,14 @@ const AdminDashboard: React.FC = () => {
           },
         }}
       />
-      <div className="bg-gray-900/95 backdrop-blur-md border-b border-yellow-500/30 p-4 shadow-lg">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">
+      <div className="bg-black/95 backdrop-blur-md border-b border-yellow-500/30 p-4 shadow-lg">
+        <div className="flex flex-col sm:flex-row justify-between items-center space-y-2 sm:space-y-0">
+          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">
             Admin Dashboard
           </h1>
           <button
             onClick={handleLogout}
-            className="flex items-center space-x-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors"
+            className="flex items-center space-x-2 bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg transition-colors text-sm sm:text-base"
           >
             <LogOut size={20} />
             <span>Logout</span>
@@ -288,90 +298,90 @@ const AdminDashboard: React.FC = () => {
 
       <div className="flex">
         {/* Sidebar */}
-        <div className="w-64 bg-gray-800/50 backdrop-blur-sm min-h-screen p-4 border-r border-yellow-500/20">
+        <div className="w-16 sm:w-64 bg-black/50 backdrop-blur-sm min-h-screen p-2 sm:p-4 border-r border-yellow-500/20">
           <nav className="space-y-2">
             <button
               onClick={() => setActiveTab('dashboard')}
-              className={`w-full text-left px-4 py-3 rounded transition-colors flex items-center space-x-2 ${
-                activeTab === 'dashboard' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-black shadow-lg' : 'text-yellow-400 hover:bg-gray-700'
+              className={`w-full text-left px-2 sm:px-4 py-3 rounded transition-colors flex items-center justify-center sm:justify-start space-x-0 sm:space-x-2 ${
+                activeTab === 'dashboard' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-black shadow-lg' : 'text-yellow-400 hover:bg-gray-800'
               }`}
             >
               <BarChart3 size={20} />
-              <span>Dashboard</span>
+              <span className="hidden sm:inline">Dashboard</span>
             </button>
             <button
               onClick={() => setActiveTab('orders')}
-              className={`w-full text-left px-4 py-3 rounded transition-colors flex items-center space-x-2 ${
-                activeTab === 'orders' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-black shadow-lg' : 'text-yellow-400 hover:bg-gray-700'
+              className={`w-full text-left px-2 sm:px-4 py-3 rounded transition-colors flex items-center justify-center sm:justify-start space-x-0 sm:space-x-2 ${
+                activeTab === 'orders' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-black shadow-lg' : 'text-yellow-400 hover:bg-gray-800'
               }`}
             >
               <ShoppingBag size={20} />
-              <span>Orders ({pendingOrders})</span>
+              <span className="hidden sm:inline">Orders ({pendingOrders})</span>
             </button>
             <button
               onClick={() => setActiveTab('menu')}
-              className={`w-full text-left px-4 py-3 rounded transition-colors flex items-center space-x-2 ${
-                activeTab === 'menu' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-black shadow-lg' : 'text-yellow-400 hover:bg-gray-700'
+              className={`w-full text-left px-2 sm:px-4 py-3 rounded transition-colors flex items-center justify-center sm:justify-start space-x-0 sm:space-x-2 ${
+                activeTab === 'menu' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-black shadow-lg' : 'text-yellow-400 hover:bg-gray-800'
               }`}
             >
               <Package size={20} />
-              <span>Menu Management</span>
+              <span className="hidden sm:inline">Menu Management</span>
             </button>
             <button
               onClick={() => setActiveTab('carousel')}
-              className={`w-full text-left px-4 py-3 rounded transition-colors flex items-center space-x-2 ${
-                activeTab === 'carousel' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-black shadow-lg' : 'text-yellow-400 hover:bg-gray-700'
+              className={`w-full text-left px-2 sm:px-4 py-3 rounded transition-colors flex items-center justify-center sm:justify-start space-x-0 sm:space-x-2 ${
+                activeTab === 'carousel' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-black shadow-lg' : 'text-yellow-400 hover:bg-gray-800'
               }`}
             >
               <Upload size={20} />
-              <span>Carousel Images</span>
+              <span className="hidden sm:inline">Carousel Images</span>
             </button>
           </nav>
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 p-6">
+        <div className="flex-1 p-4 sm:p-6">
           {activeTab === 'dashboard' && (
             <div>
-              <h2 className="text-2xl font-bold text-white mb-6">Dashboard Overview</h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6">Dashboard Overview</h2>
               
               {/* Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div className="bg-gray-800/50 backdrop-blur-sm p-6 rounded-xl border border-yellow-500/20 shadow-lg">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+                <div className="bg-black/50 backdrop-blur-sm p-4 sm:p-6 rounded-xl border border-yellow-500/20 shadow-lg">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-gray-400">Total Revenue</p>
-                      <p className="text-2xl font-bold text-yellow-400">₹{totalRevenue}</p>
+                      <p className="text-xl sm:text-2xl font-bold text-yellow-400">₹{totalRevenue}</p>
                     </div>
                     <DollarSign className="text-yellow-400" size={32} />
                   </div>
                 </div>
                 
-                <div className="bg-gray-800/50 backdrop-blur-sm p-6 rounded-xl border border-yellow-500/20 shadow-lg">
+                <div className="bg-black/50 backdrop-blur-sm p-4 sm:p-6 rounded-xl border border-yellow-500/20 shadow-lg">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-gray-400">Total Orders</p>
-                      <p className="text-2xl font-bold text-yellow-400">{totalOrders}</p>
+                      <p className="text-xl sm:text-2xl font-bold text-yellow-400">{totalOrders}</p>
                     </div>
                     <ShoppingBag className="text-yellow-400" size={32} />
                   </div>
                 </div>
                 
-                <div className="bg-gray-800/50 backdrop-blur-sm p-6 rounded-xl border border-yellow-500/20 shadow-lg">
+                <div className="bg-black/50 backdrop-blur-sm p-4 sm:p-6 rounded-xl border border-yellow-500/20 shadow-lg">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-gray-400">Pending Orders</p>
-                      <p className="text-2xl font-bold text-orange-400">{pendingOrders}</p>
+                      <p className="text-xl sm:text-2xl font-bold text-orange-400">{pendingOrders}</p>
                     </div>
                     <TrendingUp className="text-orange-400" size={32} />
                   </div>
                 </div>
                 
-                <div className="bg-gray-800/50 backdrop-blur-sm p-6 rounded-xl border border-yellow-500/20 shadow-lg">
+                <div className="bg-black/50 backdrop-blur-sm p-4 sm:p-6 rounded-xl border border-yellow-500/20 shadow-lg">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-gray-400">Delivered</p>
-                      <p className="text-2xl font-bold text-green-400">{deliveredOrders}</p>
+                      <p className="text-xl sm:text-2xl font-bold text-green-400">{deliveredOrders}</p>
                     </div>
                     <Users className="text-green-400" size={32} />
                   </div>
@@ -379,16 +389,16 @@ const AdminDashboard: React.FC = () => {
               </div>
 
               {/* Recent Orders */}
-              <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl border border-yellow-500/20 p-6 shadow-lg">
-                <h3 className="text-xl font-bold text-white mb-4">Recent Orders</h3>
+              <div className="bg-black/50 backdrop-blur-sm rounded-xl border border-yellow-500/20 p-4 sm:p-6 shadow-lg">
+                <h3 className="text-lg sm:text-xl font-bold text-white mb-4">Recent Orders</h3>
                 <div className="space-y-4">
                   {orders.slice(0, 5).map(order => (
-                    <div key={order.id} className="flex justify-between items-center p-4 bg-gray-700/50 rounded-lg border border-yellow-500/10">
+                    <div key={order.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-gray-800/50 rounded-lg border border-yellow-500/10 space-y-2 sm:space-y-0">
                       <div>
                         <p className="text-yellow-400 font-semibold">Order #{order.id}</p>
                         <p className="text-gray-300">{order.customerInfo.name}</p>
                       </div>
-                      <div className="text-right flex items-center space-x-3">
+                      <div className="text-left sm:text-right flex items-center space-x-3">
                         <div>
                           <p className="text-yellow-400 font-bold">₹{order.total}</p>
                         <p className={`text-sm capitalize ${
@@ -416,17 +426,17 @@ const AdminDashboard: React.FC = () => {
 
           {activeTab === 'orders' && (
             <div>
-              <h2 className="text-2xl font-bold text-white mb-6">Order Management</h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6">Order Management</h2>
               <div className="space-y-4">
                 {orders.map(order => (
-                  <div key={order.id} className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-yellow-500/20 shadow-lg">
-                    <div className="flex justify-between items-start mb-4">
+                  <div key={order.id} className="bg-black/50 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-yellow-500/20 shadow-lg">
+                    <div className="flex flex-col sm:flex-row justify-between items-start mb-4 space-y-2 sm:space-y-0">
                       <div>
                         <h4 className="text-yellow-400 font-semibold">Order #{order.id}</h4>
                         <p className="text-gray-300">{order.customerInfo.name} - {order.customerInfo.phone}</p>
-                        <p className="text-gray-300">{order.customerInfo.address}</p>
+                        <p className="text-gray-300 text-sm">{order.customerInfo.address}</p>
                       </div>
-                      <div className="text-right flex items-center space-x-3">
+                      <div className="text-left sm:text-right flex items-center space-x-3">
                         <div>
                           <p className="text-yellow-400 font-bold">₹{order.total}</p>
                           <p className="text-gray-300 capitalize">{order.paymentMethod}</p>
@@ -444,20 +454,22 @@ const AdminDashboard: React.FC = () => {
                     </div>
                     
                     <div className="mb-4">
-                      <h5 className="text-white font-semibold mb-2">Items:</h5>
-                      {order.items.map(item => (
-                        <p key={item.id} className="text-gray-300">
+                      <h5 className="text-white font-semibold mb-2 text-sm sm:text-base">Items:</h5>
+                      <div className="space-y-1">
+                        {order.items.map(item => (
+                        <p key={item.id} className="text-gray-300 text-sm">
                           {item.name} x {item.quantity} - ₹{item.price * item.quantity}
                         </p>
-                      ))}
+                        ))}
+                      </div>
                     </div>
 
-                    <div className="flex items-center space-x-4">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
                       <span className="text-white">Status:</span>
                       <select
                         value={order.status}
                         onChange={(e) => handleStatusUpdate(order.id, e.target.value as Order['status'])}
-                        className="bg-gray-700 text-white border border-yellow-500/30 rounded px-3 py-1 focus:border-yellow-400 focus:outline-none"
+                        className="bg-gray-700 text-white border border-yellow-500/30 rounded px-3 py-1 focus:border-yellow-400 focus:outline-none w-full sm:w-auto"
                       >
                         <option value="received">Order Received</option>
                         <option value="cooking">Cooking</option>
@@ -476,10 +488,10 @@ const AdminDashboard: React.FC = () => {
 
           {activeTab === 'menu' && (
             <div>
-              <h2 className="text-2xl font-bold text-white mb-6">Menu Management</h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6">Menu Management</h2>
               
               {/* Add New Item */}
-              <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 mb-6 border border-yellow-500/20 shadow-lg">
+              <div className="bg-black/50 backdrop-blur-sm rounded-xl p-4 sm:p-6 mb-6 border border-yellow-500/20 shadow-lg">
                 <h4 className="text-yellow-400 font-semibold mb-4">Add New Item</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <input
@@ -530,7 +542,7 @@ const AdminDashboard: React.FC = () => {
               {/* Menu Items */}
               <div className="space-y-4">
                 {menu.map(item => (
-                  <div key={item.id} className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-yellow-500/20 shadow-lg">
+                  <div key={item.id} className="bg-black/50 backdrop-blur-sm rounded-xl p-4 border border-yellow-500/20 shadow-lg">
                     {editingItem?.id === item.id ? (
                       <div className="space-y-4">
                         <input
@@ -561,8 +573,8 @@ const AdminDashboard: React.FC = () => {
                         </div>
                       </div>
                     ) : (
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center space-x-4">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-2 sm:space-y-0">
+                        <div className="flex items-center space-x-4 flex-1">
                           {item.image && (
                             <img src={item.image} alt={item.name} className="w-16 h-16 object-cover rounded" />
                           )}
@@ -595,11 +607,11 @@ const AdminDashboard: React.FC = () => {
 
           {activeTab === 'carousel' && (
             <div>
-              <h2 className="text-2xl font-bold text-white mb-6">Carousel Management</h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6">Carousel Management</h2>
               <div className="space-y-4">
                 {carouselImages.map((image, index) => (
-                  <div key={image.id} className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-yellow-500/20 shadow-lg">
-                    <div className="flex items-center space-x-4">
+                  <div key={image.id} className="bg-black/50 backdrop-blur-sm rounded-xl p-4 border border-yellow-500/20 shadow-lg">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
                       <img src={image.url} alt={image.title} className="w-24 h-24 object-cover rounded" />
                       <div className="flex-1">
                         <h4 className="text-yellow-400 font-semibold">{image.title}</h4>
@@ -618,7 +630,7 @@ const AdminDashboard: React.FC = () => {
                   </div>
                 ))}
               </div>
-              <div className="mt-6 bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-yellow-500/20 shadow-lg">
+              <div className="mt-6 bg-black/50 backdrop-blur-sm rounded-xl p-4 border border-yellow-500/20 shadow-lg">
                 <h4 className="text-yellow-400 font-semibold mb-4">Add New Carousel Image</h4>
                 <div className="space-y-4">
                   <input

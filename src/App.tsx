@@ -125,19 +125,19 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white">
       <Toaster 
         position="top-right"
         toastOptions={{
           duration: 4000,
           style: {
-            background: '#1e293b',
+            background: '#000000',
             color: '#f1f5f9',
-            border: '1px solid #3b82f6',
+            border: '1px solid #eab308',
           },
           success: {
             iconTheme: {
-              primary: '#10b981',
+              primary: '#eab308',
               secondary: '#f1f5f9',
             },
           },
