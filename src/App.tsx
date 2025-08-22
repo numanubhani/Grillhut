@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast, { Toaster } from 'react-hot-toast';
 import Navbar from './components/Navbar';
 import Carousel from './components/Carousel';
 import CategoryFilter from './components/CategoryFilter';
@@ -98,6 +99,12 @@ function App() {
       setCurrentOrder(order);
       setIsOrderTrackingOpen(true);
       updateCartItems();
+      
+      // Show success toast
+      toast.success('Order confirmed!', {
+        duration: 4000,
+        position: 'top-right',
+      });
     }
   };
 
@@ -118,7 +125,24 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+      <Toaster 
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#1e293b',
+            color: '#f1f5f9',
+            border: '1px solid #3b82f6',
+          },
+          success: {
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#f1f5f9',
+            },
+          },
+        }}
+      />
       <Navbar 
         onCartClick={() => setIsCartOpen(true)}
         onLoginClick={() => setIsLoginModalOpen(true)}

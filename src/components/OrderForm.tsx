@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Upload } from 'lucide-react';
+import { X, Upload, Truck } from 'lucide-react';
 import { CartItem, Order } from '../types';
 import { saveOrder, clearCart } from '../utils/storage';
 
@@ -19,6 +19,8 @@ const OrderForm: React.FC<OrderFormProps> = ({ isOpen, onClose, items, onOrderPl
   });
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'online'>('cash');
   const [screenshot, setScreenshot] = useState<string>('');
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [orderId, setOrderId] = useState<string>('');
 
   const orderItems = singleItem ? [{ ...singleItem, quantity: 1 }] : items;
   const total = orderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -41,8 +43,10 @@ const OrderForm: React.FC<OrderFormProps> = ({ isOpen, onClose, items, onOrderPl
     if (!singleItem) {
       clearCart();
     }
+    
+    setOrderId(order.id);
+    setShowConfirmation(true);
     onOrderPlaced(order.id);
-    onClose();
   };
 
   const handleScreenshotUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -56,17 +60,72 @@ const OrderForm: React.FC<OrderFormProps> = ({ isOpen, onClose, items, onOrderPl
     }
   };
 
+  const handleTrackOrder = () => {
+    setShowConfirmation(false);
+    onClose();
+    // This will trigger the order tracking modal
+    setTimeout(() => {
+      const trackButton = document.querySelector('[data-track-order]') as HTMLButtonElement;
+      if (trackButton) trackButton.click();
+    }, 100);
+  };
+
+  const handleCloseConfirmation = () => {
+    setShowConfirmation(false);
+    onClose();
+    // Reset form
+    setCustomerInfo({ name: '', phone: '', address: '' });
+    setPaymentMethod('cash');
+    setScreenshot('');
+  };
   if (!isOpen) return null;
 
+  if (showConfirmation) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div className="bg-slate-800 rounded-xl w-full max-w-md border border-blue-500/30 shadow-2xl">
+          <div className="p-6 text-center">
+            <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-2">Order Confirmed!</h2>
+            <p className="text-slate-300 mb-4">Your Order ID is:</p>
+            <div className="bg-slate-700 rounded-lg p-3 mb-4">
+              <p className="text-2xl font-bold text-blue-400">#{orderId}</p>
+            </div>
+            <p className="text-emerald-400 font-semibold mb-6">🍳 Your order is now cooking!</p>
+            
+            <div className="space-y-3">
+              <button
+                onClick={handleTrackOrder}
+                className="w-full bg-gradient-to-r from-blue-500 to-emerald-500 text-white py-3 rounded-lg hover:from-blue-600 hover:to-emerald-600 transition-all duration-300 shadow-lg flex items-center justify-center space-x-2"
+              >
+                <Truck size={20} />
+                <span>Track Order Status</span>
+              </button>
+              <button
+                onClick={handleCloseConfirmation}
+                className="w-full bg-slate-700 text-slate-300 py-3 rounded-lg hover:bg-slate-600 transition-colors"
+              >
+                Continue Shopping
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-gray-900 rounded-lg w-full max-w-2xl max-h-screen overflow-y-auto">
-        <div className="p-6 border-b border-yellow-600">
+      <div className="bg-slate-800 rounded-xl w-full max-w-2xl max-h-screen overflow-y-auto border border-blue-500/30 shadow-2xl">
+        <div className="p-6 border-b border-blue-500/30">
           <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold text-yellow-400">Place Your Order</h2>
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">Place Your Order</h2>
             <button
               onClick={onClose}
-              className="text-yellow-400 hover:text-yellow-300 transition-colors"
+              className="text-blue-400 hover:text-blue-300 transition-colors"
             >
               <X size={24} />
             </button>
@@ -100,7 +159,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ isOpen, onClose, items, onOrderPl
                 placeholder="Full Name"
                 value={customerInfo.name}
                 onChange={(e) => setCustomerInfo({...customerInfo, name: e.target.value})}
-                className="w-full bg-gray-800 text-white border border-gray-600 rounded px-4 py-2 focus:border-yellow-400 focus:outline-none"
+                className="w-full bg-slate-700 text-white border border-blue-500/30 rounded px-4 py-2 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/20"
                 required
               />
               <input
@@ -108,14 +167,14 @@ const OrderForm: React.FC<OrderFormProps> = ({ isOpen, onClose, items, onOrderPl
                 placeholder="Phone Number"
                 value={customerInfo.phone}
                 onChange={(e) => setCustomerInfo({...customerInfo, phone: e.target.value})}
-                className="w-full bg-gray-800 text-white border border-gray-600 rounded px-4 py-2 focus:border-yellow-400 focus:outline-none"
+                className="w-full bg-slate-700 text-white border border-blue-500/30 rounded px-4 py-2 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/20"
                 required
               />
               <textarea
                 placeholder="Delivery Address"
                 value={customerInfo.address}
                 onChange={(e) => setCustomerInfo({...customerInfo, address: e.target.value})}
-                className="w-full bg-gray-800 text-white border border-gray-600 rounded px-4 py-3 focus:border-yellow-400 focus:outline-none"
+                className="w-full bg-slate-700 text-white border border-blue-500/30 rounded px-4 py-3 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/20"
                 rows={3}
                 required
               />
@@ -133,7 +192,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ isOpen, onClose, items, onOrderPl
                   value="cash"
                   checked={paymentMethod === 'cash'}
                   onChange={(e) => setPaymentMethod(e.target.value as 'cash')}
-                  className="text-yellow-400"
+                  className="text-blue-400"
                 />
                 <span>Cash on Delivery</span>
               </label>
@@ -144,16 +203,16 @@ const OrderForm: React.FC<OrderFormProps> = ({ isOpen, onClose, items, onOrderPl
                   value="online"
                   checked={paymentMethod === 'online'}
                   onChange={(e) => setPaymentMethod(e.target.value as 'online')}
-                  className="text-yellow-400"
+                  className="text-blue-400"
                 />
                 <span>Online Payment (Bank Transfer)</span>
               </label>
             </div>
 
             {paymentMethod === 'online' && (
-              <div className="mt-4 p-4 bg-gray-800 rounded">
+              <div className="mt-4 p-4 bg-slate-700 rounded-lg border border-blue-500/20">
                 <h4 className="text-white font-semibold mb-2">Bank Transfer Details</h4>
-                <div className="text-gray-300 space-y-1">
+                <div className="text-slate-300 space-y-1">
                   <p>Account Name: Grill Hut Restaurant</p>
                   <p>Account Number: 1234567890</p>
                   <p>Bank: State Bank of India</p>
@@ -165,7 +224,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ isOpen, onClose, items, onOrderPl
                     type="file"
                     accept="image/*"
                     onChange={handleScreenshotUpload}
-                    className="w-full bg-gray-700 text-white border border-gray-600 rounded px-4 py-2 focus:border-yellow-400 focus:outline-none"
+                    className="w-full bg-slate-600 text-white border border-blue-500/30 rounded px-4 py-2 focus:border-blue-400 focus:outline-none"
                     required
                   />
                   {screenshot && (
@@ -178,7 +237,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ isOpen, onClose, items, onOrderPl
 
           <button
             type="submit"
-            className="w-full bg-green-600 text-white py-3 rounded hover:bg-green-700 transition-colors font-semibold"
+            className="w-full bg-gradient-to-r from-emerald-500 to-blue-500 text-white py-3 rounded-lg hover:from-emerald-600 hover:to-blue-600 transition-all duration-300 font-semibold shadow-lg"
           >
             Confirm Order
           </button>

@@ -57,14 +57,14 @@ const Carousel: React.FC<CarouselProps> = ({ images }) => {
       
       <button
         onClick={goToPrevious}
-        className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-yellow-400 p-2 rounded-full hover:bg-opacity-70 transition-all"
+        className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-slate-900/50 backdrop-blur-sm text-blue-400 p-2 rounded-full hover:bg-slate-900/70 transition-all border border-blue-500/30"
       >
         <ChevronLeft size={24} />
       </button>
       
       <button
         onClick={goToNext}
-        className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-yellow-400 p-2 rounded-full hover:bg-opacity-70 transition-all"
+        className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-slate-900/50 backdrop-blur-sm text-blue-400 p-2 rounded-full hover:bg-slate-900/70 transition-all border border-blue-500/30"
       >
         <ChevronRight size={24} />
       </button>
@@ -75,7 +75,7 @@ const Carousel: React.FC<CarouselProps> = ({ images }) => {
             key={index}
             onClick={() => setCurrentIndex(index)}
             className={`w-3 h-3 rounded-full transition-all ${
-              index === currentIndex ? 'bg-yellow-400' : 'bg-white bg-opacity-50'
+              index === currentIndex ? 'bg-blue-400' : 'bg-white bg-opacity-50'
             }`}
           />
         ))}

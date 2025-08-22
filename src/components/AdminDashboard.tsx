@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast, { Toaster } from 'react-hot-toast';
 import { 
   BarChart3, 
   ShoppingBag, 
@@ -9,7 +10,8 @@ import {
   Trash2, 
   Upload,
   TrendingUp,
-  Package
+  Package,
+  LogOut
 } from 'lucide-react';
 import { MenuItem, Order, CarouselImage } from '../types';
 import { 
@@ -20,6 +22,7 @@ import {
   getCarouselImages, 
   saveCarouselImages 
 } from '../utils/storage';
+import { logout } from '../utils/auth';
 
 const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'orders' | 'menu' | 'carousel'>('dashboard');
@@ -39,6 +42,21 @@ const AdminDashboard: React.FC = () => {
     setOrders(getOrders());
     setMenu(getMenu());
     setCarouselImages(getCarouselImages());
+    
+    // Check for new orders periodically and show toast
+    const interval = setInterval(() => {
+      const currentOrders = getOrders();
+      if (currentOrders.length > orders.length) {
+        const newOrder = currentOrders[currentOrders.length - 1];
+        toast.success(`New order received! Order #${newOrder.id}`, {
+          duration: 5000,
+          position: 'top-right',
+        });
+        setOrders(currentOrders);
+      }
+    }, 2000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   const handleStatusUpdate = (orderId: string, status: Order['status']) => {
@@ -85,6 +103,10 @@ const AdminDashboard: React.FC = () => {
     saveCarouselImages(images);
   };
 
+  const handleLogout = () => {
+    logout();
+    window.location.reload();
+  };
   // Statistics
   const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
   const totalOrders = orders.length;
@@ -92,19 +114,47 @@ const AdminDashboard: React.FC = () => {
   const deliveredOrders = orders.filter(order => order.status === 'delivered').length;
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <div className="bg-gray-900 border-b border-yellow-600 p-4">
-        <h1 className="text-3xl font-bold text-yellow-400">Admin Dashboard</h1>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+      <Toaster 
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#1e293b',
+            color: '#f1f5f9',
+            border: '1px solid #3b82f6',
+          },
+          success: {
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#f1f5f9',
+            },
+          },
+        }}
+      />
+      <div className="bg-slate-900/95 backdrop-blur-md border-b border-blue-500/30 p-4 shadow-lg">
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
+            Admin Dashboard
+          </h1>
+          <button
+            onClick={handleLogout}
+            className="flex items-center space-x-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors"
+          >
+            <LogOut size={20} />
+            <span>Logout</span>
+          </button>
+        </div>
       </div>
 
       <div className="flex">
         {/* Sidebar */}
-        <div className="w-64 bg-gray-900 min-h-screen p-4">
+        <div className="w-64 bg-slate-800/50 backdrop-blur-sm min-h-screen p-4 border-r border-blue-500/20">
           <nav className="space-y-2">
             <button
               onClick={() => setActiveTab('dashboard')}
               className={`w-full text-left px-4 py-3 rounded transition-colors flex items-center space-x-2 ${
-                activeTab === 'dashboard' ? 'bg-yellow-400 text-black' : 'text-yellow-400 hover:bg-gray-800'
+                activeTab === 'dashboard' ? 'bg-gradient-to-r from-blue-500 to-emerald-500 text-white shadow-lg' : 'text-blue-400 hover:bg-slate-700'
               }`}
             >
               <BarChart3 size={20} />
@@ -113,7 +163,7 @@ const AdminDashboard: React.FC = () => {
             <button
               onClick={() => setActiveTab('orders')}
               className={`w-full text-left px-4 py-3 rounded transition-colors flex items-center space-x-2 ${
-                activeTab === 'orders' ? 'bg-yellow-400 text-black' : 'text-yellow-400 hover:bg-gray-800'
+                activeTab === 'orders' ? 'bg-gradient-to-r from-blue-500 to-emerald-500 text-white shadow-lg' : 'text-blue-400 hover:bg-slate-700'
               }`}
             >
               <ShoppingBag size={20} />
@@ -122,7 +172,7 @@ const AdminDashboard: React.FC = () => {
             <button
               onClick={() => setActiveTab('menu')}
               className={`w-full text-left px-4 py-3 rounded transition-colors flex items-center space-x-2 ${
-                activeTab === 'menu' ? 'bg-yellow-400 text-black' : 'text-yellow-400 hover:bg-gray-800'
+                activeTab === 'menu' ? 'bg-gradient-to-r from-blue-500 to-emerald-500 text-white shadow-lg' : 'text-blue-400 hover:bg-slate-700'
               }`}
             >
               <Package size={20} />
@@ -131,7 +181,7 @@ const AdminDashboard: React.FC = () => {
             <button
               onClick={() => setActiveTab('carousel')}
               className={`w-full text-left px-4 py-3 rounded transition-colors flex items-center space-x-2 ${
-                activeTab === 'carousel' ? 'bg-yellow-400 text-black' : 'text-yellow-400 hover:bg-gray-800'
+                activeTab === 'carousel' ? 'bg-gradient-to-r from-blue-500 to-emerald-500 text-white shadow-lg' : 'text-blue-400 hover:bg-slate-700'
               }`}
             >
               <Upload size={20} />
@@ -148,59 +198,59 @@ const AdminDashboard: React.FC = () => {
               
               {/* Stats Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div className="bg-gray-900 p-6 rounded-lg border border-yellow-600">
+                <div className="bg-slate-800/50 backdrop-blur-sm p-6 rounded-xl border border-blue-500/20 shadow-lg">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-gray-400">Total Revenue</p>
-                      <p className="text-2xl font-bold text-yellow-400">₹{totalRevenue}</p>
+                      <p className="text-slate-400">Total Revenue</p>
+                      <p className="text-2xl font-bold text-emerald-400">₹{totalRevenue}</p>
                     </div>
-                    <DollarSign className="text-yellow-400" size={32} />
+                    <DollarSign className="text-emerald-400" size={32} />
                   </div>
                 </div>
                 
-                <div className="bg-gray-900 p-6 rounded-lg border border-yellow-600">
+                <div className="bg-slate-800/50 backdrop-blur-sm p-6 rounded-xl border border-blue-500/20 shadow-lg">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-gray-400">Total Orders</p>
-                      <p className="text-2xl font-bold text-yellow-400">{totalOrders}</p>
+                      <p className="text-slate-400">Total Orders</p>
+                      <p className="text-2xl font-bold text-blue-400">{totalOrders}</p>
                     </div>
-                    <ShoppingBag className="text-yellow-400" size={32} />
+                    <ShoppingBag className="text-blue-400" size={32} />
                   </div>
                 </div>
                 
-                <div className="bg-gray-900 p-6 rounded-lg border border-yellow-600">
+                <div className="bg-slate-800/50 backdrop-blur-sm p-6 rounded-xl border border-blue-500/20 shadow-lg">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-gray-400">Pending Orders</p>
-                      <p className="text-2xl font-bold text-yellow-400">{pendingOrders}</p>
+                      <p className="text-slate-400">Pending Orders</p>
+                      <p className="text-2xl font-bold text-orange-400">{pendingOrders}</p>
                     </div>
-                    <TrendingUp className="text-yellow-400" size={32} />
+                    <TrendingUp className="text-orange-400" size={32} />
                   </div>
                 </div>
                 
-                <div className="bg-gray-900 p-6 rounded-lg border border-yellow-600">
+                <div className="bg-slate-800/50 backdrop-blur-sm p-6 rounded-xl border border-blue-500/20 shadow-lg">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-gray-400">Delivered</p>
-                      <p className="text-2xl font-bold text-yellow-400">{deliveredOrders}</p>
+                      <p className="text-slate-400">Delivered</p>
+                      <p className="text-2xl font-bold text-green-400">{deliveredOrders}</p>
                     </div>
-                    <Users className="text-yellow-400" size={32} />
+                    <Users className="text-green-400" size={32} />
                   </div>
                 </div>
               </div>
 
               {/* Recent Orders */}
-              <div className="bg-gray-900 rounded-lg border border-yellow-600 p-6">
+              <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl border border-blue-500/20 p-6 shadow-lg">
                 <h3 className="text-xl font-bold text-white mb-4">Recent Orders</h3>
                 <div className="space-y-4">
                   {orders.slice(0, 5).map(order => (
-                    <div key={order.id} className="flex justify-between items-center p-4 bg-gray-800 rounded">
+                    <div key={order.id} className="flex justify-between items-center p-4 bg-slate-700/50 rounded-lg border border-blue-500/10">
                       <div>
-                        <p className="text-yellow-400 font-semibold">Order #{order.id}</p>
-                        <p className="text-gray-300">{order.customerInfo.name}</p>
+                        <p className="text-blue-400 font-semibold">Order #{order.id}</p>
+                        <p className="text-slate-300">{order.customerInfo.name}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-yellow-400 font-bold">₹{order.total}</p>
+                        <p className="text-emerald-400 font-bold">₹{order.total}</p>
                         <p className={`text-sm capitalize ${
                           order.status === 'delivered' ? 'text-green-400' : 'text-orange-400'
                         }`}>
@@ -219,16 +269,16 @@ const AdminDashboard: React.FC = () => {
               <h2 className="text-2xl font-bold text-white mb-6">Order Management</h2>
               <div className="space-y-4">
                 {orders.map(order => (
-                  <div key={order.id} className="bg-gray-900 rounded-lg p-6 border border-yellow-600">
+                  <div key={order.id} className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-blue-500/20 shadow-lg">
                     <div className="flex justify-between items-start mb-4">
                       <div>
-                        <h4 className="text-yellow-400 font-semibold">Order #{order.id}</h4>
-                        <p className="text-gray-300">{order.customerInfo.name} - {order.customerInfo.phone}</p>
-                        <p className="text-gray-300">{order.customerInfo.address}</p>
+                        <h4 className="text-blue-400 font-semibold">Order #{order.id}</h4>
+                        <p className="text-slate-300">{order.customerInfo.name} - {order.customerInfo.phone}</p>
+                        <p className="text-slate-300">{order.customerInfo.address}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-yellow-400 font-bold">₹{order.total}</p>
-                        <p className="text-gray-300 capitalize">{order.paymentMethod}</p>
+                        <p className="text-emerald-400 font-bold">₹{order.total}</p>
+                        <p className="text-slate-300 capitalize">{order.paymentMethod}</p>
                       </div>
                     </div>
                     
@@ -246,7 +296,7 @@ const AdminDashboard: React.FC = () => {
                       <select
                         value={order.status}
                         onChange={(e) => handleStatusUpdate(order.id, e.target.value as Order['status'])}
-                        className="bg-gray-700 text-white border border-gray-600 rounded px-3 py-1"
+                        className="bg-slate-700 text-white border border-blue-500/30 rounded px-3 py-1 focus:border-blue-400 focus:outline-none"
                       >
                         <option value="received">Order Received</option>
                         <option value="cooking">Cooking</option>
@@ -257,7 +307,7 @@ const AdminDashboard: React.FC = () => {
                   </div>
                 ))}
                 {orders.length === 0 && (
-                  <p className="text-gray-400 text-center py-8">No orders yet.</p>
+                  <p className="text-slate-400 text-center py-8">No orders yet.</p>
                 )}
               </div>
             </div>
@@ -268,42 +318,42 @@ const AdminDashboard: React.FC = () => {
               <h2 className="text-2xl font-bold text-white mb-6">Menu Management</h2>
               
               {/* Add New Item */}
-              <div className="bg-gray-900 rounded-lg p-6 mb-6 border border-yellow-600">
-                <h4 className="text-yellow-400 font-semibold mb-4">Add New Item</h4>
+              <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 mb-6 border border-blue-500/20 shadow-lg">
+                <h4 className="text-blue-400 font-semibold mb-4">Add New Item</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <input
                     type="text"
                     placeholder="Item Name"
                     value={newItem.name}
                     onChange={(e) => setNewItem({...newItem, name: e.target.value})}
-                    className="bg-gray-700 text-white border border-gray-600 rounded px-3 py-2"
+                    className="bg-slate-700 text-white border border-blue-500/30 rounded px-3 py-2 focus:border-blue-400 focus:outline-none"
                   />
                   <input
                     type="number"
                     placeholder="Price"
                     value={newItem.price}
                     onChange={(e) => setNewItem({...newItem, price: Number(e.target.value)})}
-                    className="bg-gray-700 text-white border border-gray-600 rounded px-3 py-2"
+                    className="bg-slate-700 text-white border border-blue-500/30 rounded px-3 py-2 focus:border-blue-400 focus:outline-none"
                   />
                   <input
                     type="text"
                     placeholder="Category"
                     value={newItem.category}
                     onChange={(e) => setNewItem({...newItem, category: e.target.value})}
-                    className="bg-gray-700 text-white border border-gray-600 rounded px-3 py-2"
+                    className="bg-slate-700 text-white border border-blue-500/30 rounded px-3 py-2 focus:border-blue-400 focus:outline-none"
                   />
                   <input
                     type="url"
                     placeholder="Image URL"
                     value={newItem.image}
                     onChange={(e) => setNewItem({...newItem, image: e.target.value})}
-                    className="bg-gray-700 text-white border border-gray-600 rounded px-3 py-2"
+                    className="bg-slate-700 text-white border border-blue-500/30 rounded px-3 py-2 focus:border-blue-400 focus:outline-none"
                   />
                   <textarea
                     placeholder="Description"
                     value={newItem.description}
                     onChange={(e) => setNewItem({...newItem, description: e.target.value})}
-                    className="bg-gray-700 text-white border border-gray-600 rounded px-3 py-2 md:col-span-2"
+                    className="bg-slate-700 text-white border border-blue-500/30 rounded px-3 py-2 md:col-span-2 focus:border-blue-400 focus:outline-none"
                     rows={3}
                   />
                 </div>
@@ -319,20 +369,20 @@ const AdminDashboard: React.FC = () => {
               {/* Menu Items */}
               <div className="space-y-4">
                 {menu.map(item => (
-                  <div key={item.id} className="bg-gray-900 rounded-lg p-4 border border-yellow-600">
+                  <div key={item.id} className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-4 border border-blue-500/20 shadow-lg">
                     {editingItem?.id === item.id ? (
                       <div className="space-y-4">
                         <input
                           type="text"
                           value={editingItem.name}
                           onChange={(e) => setEditingItem({...editingItem, name: e.target.value})}
-                          className="w-full bg-gray-700 text-white border border-gray-600 rounded px-3 py-2"
+                          className="w-full bg-slate-700 text-white border border-blue-500/30 rounded px-3 py-2 focus:border-blue-400 focus:outline-none"
                         />
                         <input
                           type="number"
                           value={editingItem.price}
                           onChange={(e) => setEditingItem({...editingItem, price: Number(e.target.value)})}
-                          className="w-full bg-gray-700 text-white border border-gray-600 rounded px-3 py-2"
+                          className="w-full bg-slate-700 text-white border border-blue-500/30 rounded px-3 py-2 focus:border-blue-400 focus:outline-none"
                         />
                         <div className="flex space-x-2">
                           <button
@@ -356,8 +406,8 @@ const AdminDashboard: React.FC = () => {
                             <img src={item.image} alt={item.name} className="w-16 h-16 object-cover rounded" />
                           )}
                           <div>
-                            <h4 className="text-yellow-400 font-semibold">{item.name}</h4>
-                            <p className="text-gray-300">₹{item.price} - {item.category}</p>
+                            <h4 className="text-blue-400 font-semibold">{item.name}</h4>
+                            <p className="text-slate-300">₹{item.price} - {item.category}</p>
                           </div>
                         </div>
                         <div className="flex space-x-2">
@@ -387,12 +437,12 @@ const AdminDashboard: React.FC = () => {
               <h2 className="text-2xl font-bold text-white mb-6">Carousel Management</h2>
               <div className="space-y-4">
                 {carouselImages.map((image, index) => (
-                  <div key={image.id} className="bg-gray-900 rounded-lg p-4 border border-yellow-600">
+                  <div key={image.id} className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-4 border border-blue-500/20 shadow-lg">
                     <div className="flex items-center space-x-4">
                       <img src={image.url} alt={image.title} className="w-24 h-24 object-cover rounded" />
                       <div className="flex-1">
-                        <h4 className="text-yellow-400 font-semibold">{image.title}</h4>
-                        <p className="text-gray-300">{image.description}</p>
+                        <h4 className="text-blue-400 font-semibold">{image.title}</h4>
+                        <p className="text-slate-300">{image.description}</p>
                       </div>
                       <button
                         onClick={() => {
@@ -407,13 +457,13 @@ const AdminDashboard: React.FC = () => {
                   </div>
                 ))}
               </div>
-              <div className="mt-6 bg-gray-900 rounded-lg p-4 border border-yellow-600">
-                <h4 className="text-yellow-400 font-semibold mb-4">Add New Carousel Image</h4>
+              <div className="mt-6 bg-slate-800/50 backdrop-blur-sm rounded-xl p-4 border border-blue-500/20 shadow-lg">
+                <h4 className="text-blue-400 font-semibold mb-4">Add New Carousel Image</h4>
                 <div className="space-y-4">
                   <input
                     type="url"
                     placeholder="Image URL"
-                    className="w-full bg-gray-700 text-white border border-gray-600 rounded px-3 py-2"
+                    className="w-full bg-slate-700 text-white border border-blue-500/30 rounded px-3 py-2 focus:border-blue-400 focus:outline-none"
                     onKeyPress={(e) => {
                       if (e.key === 'Enter') {
                         const input = e.target as HTMLInputElement;
@@ -430,7 +480,7 @@ const AdminDashboard: React.FC = () => {
                       }
                     }}
                   />
-                  <p className="text-gray-400 text-sm">Press Enter to add image</p>
+                  <p className="text-slate-400 text-sm">Press Enter to add image</p>
                 </div>
               </div>
             </div>
